@@ -12,12 +12,15 @@ import {
   BrainCircuit,
   Edit3,
   X,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { v4 as uuidv4 } from "uuid";
 import { store, Flashcard, Deck } from "../lib/store";
 import { db } from "../lib/firebase";
 import { doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { safeRequest } from "../utils/apiClient";
 
 // Helper function for Retry with Exponential Backoff
 async function runWithRetryAndBackoff<T>(
@@ -120,6 +123,36 @@ export default function AdminCreateCards() {
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const frontInputRef = useRef<HTMLInputElement>(null);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+  const handleGenerateBack = async () => {
+    if (!front.trim()) {
+      alert("Vui lòng nhập Mặt trước (Từ / Khái niệm) trước khi phân tích AI!");
+      frontInputRef.current?.focus();
+      return;
+    }
+    setIsGeneratingAI(true);
+    try {
+      const res = await safeRequest("/api/automation/manual-define", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ front: front, wordForm: wordForm })
+      });
+      const data = await res.json();
+      if (res.ok && (data.success || data.definition)) {
+        setBack(data.definition);
+        if (data.wordForm) {
+          setWordForm(data.wordForm);
+        }
+      } else {
+        throw new Error(data.error || data.message || "Lỗi cập nhật AI");
+      }
+    } catch (err: any) {
+      alert("Lỗi khi gọi AI phân tích: " + (err.message || ""));
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   useEffect(() => {
     const user = store.getCurrentUser();
@@ -553,10 +586,20 @@ export default function AdminCreateCards() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-widest opacity-60 flex items-center gap-2">
-                  <BookOpen className="w-3.5 h-3.5" /> Mặt sau (Nghĩa / Lời
-                  giải)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-widest opacity-60 flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5" /> Mặt sau (Nghĩa / Lời giải)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateBack}
+                    disabled={isGeneratingAI || !front.trim()}
+                    className="px-2 py-1 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 font-bold text-[10px] rounded flex items-center gap-1 transition disabled:opacity-50"
+                  >
+                    {isGeneratingAI ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    AI Khuyến Nghị
+                  </button>
+                </div>
                 <textarea
                   rows={4}
                   className="w-full p-5 bg-white/70 dark:bg-black/40 border border-stone-200 dark:border-zinc-700 shadow-inner rounded-xl outline-none focus:ring-2 focus:ring-yellow-500/50 transition resize-none leading-relaxed"

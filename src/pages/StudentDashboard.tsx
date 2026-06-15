@@ -1016,6 +1016,24 @@ export default function StudentDashboard() {
     setShowRemindLaterModal(false);
     navigate("/study/remind-later-deck");
   };
+
+  const startCategoryRemindLaterStudy = React.useCallback((subject: string, subjectDecks: Deck[]) => {
+    const hardCards = subjectDecks.flatMap(d => d.cards || []).filter(c => remindLaterCardIds.includes(c.id));
+    if (hardCards.length === 0) return;
+
+    const remindDeck = {
+       id: `remind-later-${subject.replace(/\s+/g, '-')}`,
+       title: `Ôn tập thẻ khó: ${subject}`,
+       subject: subject,
+       description: `Bộ thẻ gồm các từ vựng khó bạn đã đánh dấu trong phân mục ${subject}.`,
+       cards: hardCards,
+       createdAt: new Date().toISOString(),
+       ownerId: "system"
+    };
+    
+    store.setTempDeck(remindDeck as any);
+    navigate(`/study/${remindDeck.id}`);
+  }, [remindLaterCardIds, navigate]);
   
   const streakCelebratedRef = useRef(false);
 
@@ -2501,7 +2519,7 @@ export default function StudentDashboard() {
           </div>
 
           <div className="glass p-6 md:p-8 rounded-3xl border border-stone-200/50 dark:border-zinc-800/50 bg-white/40 dark:bg-black/40 backdrop-blur-xl shadow-xl">
-            <DeckList decks={decks} showSearch={true} groupBySubject={true} onCategoryQuiz={(subject, subjectDecks) => setActiveQuizSetup({ subject, decks: subjectDecks })} />
+            <DeckList decks={decks} showSearch={true} groupBySubject={true} onCategoryQuiz={(subject, subjectDecks) => setActiveQuizSetup({ subject, decks: subjectDecks })} onCategoryReviewHardCards={startCategoryRemindLaterStudy} />
           </div>
         </motion.div>
       )}

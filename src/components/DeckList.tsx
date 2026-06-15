@@ -10,6 +10,8 @@ interface DeckListProps {
   showSearch?: boolean;
   groupBySubject?: boolean;
   onCategoryQuiz?: (subject: string, subjectDecks: Deck[]) => void;
+  onCategoryReviewHardCards?: (subject: string, subjectDecks: Deck[]) => void;
+  isAdmin?: boolean;
 }
 
 const TiltCard = ({ children, delayIdx, className = "" }: { children: React.ReactNode, delayIdx: number, className?: string }) => {
@@ -72,7 +74,7 @@ const TiltCard = ({ children, delayIdx, className = "" }: { children: React.Reac
   );
 };
 
-export const DeckList = ({ decks, showSearch = true, groupBySubject = false, onCategoryQuiz }: DeckListProps) => {
+export const DeckList = ({ decks, showSearch = true, groupBySubject = false, onCategoryQuiz, onCategoryReviewHardCards, isAdmin = false }: DeckListProps) => {
   const currentUser = store.getCurrentUser();
   const [pinnedDecks, setPinnedDecks] = useState<string[]>(() => {
     const saved = localStorage.getItem(`pinned_decks_${currentUser?.id || 'guest'}`);
@@ -87,6 +89,50 @@ export const DeckList = ({ decks, showSearch = true, groupBySubject = false, onC
       localStorage.setItem(`pinned_decks_${currentUser?.id || 'guest'}`, JSON.stringify(newPinned));
       return newPinned;
     });
+  };
+
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isSavingCategoryName, setIsSavingCategoryName] = useState(false);
+
+  const handleRenameCategory = async (oldName: string, newName: string) => {
+    const trimmedNewName = newName.trim();
+    if (!trimmedNewName || oldName === trimmedNewName) {
+      setEditingCategory(null);
+      return;
+    }
+    setIsSavingCategoryName(true);
+    try {
+      const { db } = await import("../lib/firebase");
+      const { collection, getDocs, writeBatch } = await import("firebase/firestore");
+      
+      const setsRef = collection(db, "sets");
+      const querySnapshot = await getDocs(setsRef);
+      const batch = writeBatch(db);
+      let count = 0;
+      
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && data.subject === oldName) {
+          batch.update(docSnap.ref, { subject: trimmedNewName });
+          count++;
+        }
+      });
+      
+      if (count > 0) {
+        await batch.commit();
+        const updatedLocalDecks = store.getDecks().map(d => d.subject === oldName ? { ...d, subject: trimmedNewName } : d);
+        store.setDecksLocally(updatedLocalDecks);
+        // Page will refresh or the store trigger will update UI as StudentDashboard reacts to store if hooked, or user can reload.
+        window.location.reload(); 
+      }
+    } catch (err) {
+      console.error("Error renaming category:", err);
+      alert("Đã có lỗi xảy ra khi đổi tên danh mục.");
+    } finally {
+      setIsSavingCategoryName(false);
+      setEditingCategory(null);
+    }
   };
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -275,6 +321,23 @@ export const DeckList = ({ decks, showSearch = true, groupBySubject = false, onC
                     </div>
 
                     <div className="flex items-center gap-3">
+                      {onCategoryReviewHardCards && (() => {
+                         const remindIds = JSON.parse(localStorage.getItem("remind_later_items") || "[]");
+                         const hardCardsInCat = subjectDecks.flatMap(d => d.cards || []).filter(c => remindIds.includes(c.id));
+                         if (hardCardsInCat.length > 0) {
+                           return (
+                             <button
+                               onClick={() => onCategoryReviewHardCards(subject, subjectDecks)}
+                               className="mr-1 text-xs font-black bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white px-4 py-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)] flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-red-500/50 cursor-pointer shrink-0"
+                               title={`Ôn lại ${hardCardsInCat.length} thẻ khó trong mục này`}
+                             >
+                               <span className="flex items-center justify-center bg-white/20 rounded-full w-5 h-5 text-[10px]">{hardCardsInCat.length}</span>
+                               <span className="hidden leading-none sm:inline">Ôn Thẻ X</span>
+                             </button>
+                           );
+                         }
+                         return null;
+                      })()}
                       {onCategoryQuiz && (
                         <button
                           onClick={() => onCategoryQuiz(subject, subjectDecks)}

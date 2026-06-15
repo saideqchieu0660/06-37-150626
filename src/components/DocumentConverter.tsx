@@ -222,6 +222,9 @@ export default function DocumentConverter() {
       const data = await res.json();
       if (res.ok && (data.success || data.definition)) {
         setManualBack(data.definition);
+        if (data.wordForm) {
+          setManualWordForm(data.wordForm);
+        }
         setToastSuccessMessage("AI đã phân tích thành công!");
       } else {
         throw new Error(data.error || data.message || "Lỗi cập nhật AI");

@@ -3025,12 +3025,31 @@ Do not include any markdown wrapper or extra text.`,
 Từ/Cụm từ: ${front}
 Từ loại/Ghi chú thêm: ${wordForm || "Không xác định"}
 
-Trả về nội dung giải thích trọn vẹn, không có lời chào hỏi dư thừa, không cần lặp lại từ khóa. Nội dung giải thích tập trung vào ý nghĩa cốt lõi và một số nét nghĩa phụ (nếu có phổ biến). Trả về dưới dạng thuần văn bản text, KHÔNG format gì thêm. Độ dài tối đa 50-70 chữ.`,
+NẾU từ/cụm từ là tiếng Anh (English), hãy tự động suy luận loại từ (word form, part of speech, ví dụ: Noun, Verb, Adjective...) và cách phát âm (IPA) (gộp chung dạng: Noun, /'stʌdi/).
+NẾU KHÔNG phải tiếng Anh hoặc bạn không rõ, có thể bỏ trống trường wordForm.
+Trả về dữ liệu dưới dạng JSON chuẩn (không dùng markdown block) với cấu trúc:
+{
+  "definition": "Định nghĩa/giải thích ngắn gọn (50-70 chữ)",
+  "wordForm": "Loại từ, phát âm IPA (chỉ áp dụng nếu là tiếng Anh)"
+}`,
           });
         return response.text;
       });
 
-      return res.json({ success: true, definition: (responseText as string).trim() });
+      let parsedData: any = { definition: (responseText as string).trim(), wordForm: wordForm || "" };
+      try {
+        const textToParse = (responseText as string).replace(/```json/g, '').replace(/```/g, '').trim();
+        const jsonMatch = textToParse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.definition) parsedData.definition = parsed.definition;
+          if (parsed.wordForm) parsedData.wordForm = parsed.wordForm;
+        }
+      } catch (e) {
+        console.warn("Failed to parse manual-define JSON fallback to raw text");
+      }
+
+      return res.json({ success: true, definition: parsedData.definition, wordForm: parsedData.wordForm });
     } catch (err: any) {
       console.error("Manual Define Error:", err);
       // Let frontend handle the error explicitly.

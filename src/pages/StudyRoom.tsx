@@ -1326,6 +1326,14 @@ export default function StudyRoom() {
           localStorage.setItem(storageKey, JSON.stringify(weakIds));
           setWeakCardIds(weakIds);
         }
+
+        if (remembered && currentCard) {
+          let remindIds = JSON.parse(localStorage.getItem("remind_later_items") || "[]");
+          const newRemindIds = remindIds.filter((id: string) => id !== currentCard.id);
+          if (remindIds.length !== newRemindIds.length) {
+            localStorage.setItem("remind_later_items", JSON.stringify(newRemindIds));
+          }
+        }
       }
 
       if (!isPinned) setDeepExplanation(null);
