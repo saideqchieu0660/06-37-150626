@@ -192,19 +192,25 @@ KHÔNG sử dụng Markdown code block. TRẢ VỀ ĐÚNG MỘT OBJECT JSON DUY 
     if (fastMode) {
       prompt = `Giải nghĩa khái niệm "${term}" (Định nghĩa của người dùng: ${definition || "Không có"}).
 YÊU CẦU QUAN TRỌNG NHẤT:
-1. ĐI THẲNG VÀO NỘI DUNG, TUYỆT ĐỐI KHÔNG có lời chào hỏi xã giao hay câu mào đầu.
-2. Dài khoảng tối đa 150 chữ, giải thích bản chất súc tích nhưng đầy đủ sinh động, trực quan.
+1. ĐI THẲNG VÀO NỘI DUNG, BỎ QUA MỌI LỜI CHÀO HỎI xã giao hay câu mào đầu.
+2. Dài khoảng tối thiểu 250 chữ, giải thích bản chất súc tích nhưng đầy đủ sinh động, trực quan.
 3. BẮT BUỘC có cấu trúc:
 - Bản chất cốt lõi (1 câu cực gọn).
-- 1 Ví dụ minh hoạ thực tế.
-- Câu hỏi gợi mở.
-Chỉ trả ra nội dung phân tích (markdown).`;
+- Đi sâu vào chi tiết giải thích bản chất thực sự của khái niệm.
+- 1 Ví dụ minh hoạ thực tế sinh động.
+- NẾU LÀ TIẾNG ANH: Bắt buộc cung cấp loại từ và giải thích cặn kẽ nguồn gốc (etymology) của từ để người học dễ nhớ hơn.
+- Kết bằng câu hỏi gợi mở suy luận.
+Chỉ trả ra nội dung (markdown).`;
     } else {
-      prompt = `Phản tích khái niệm "${term}" (Định nghĩa: ${definition}).
+      prompt = `Phân tích khái niệm "${term}" (Định nghĩa: ${definition}).
 YÊU CẦU QUAN TRỌNG NHẤT:
-1. ĐI THẲNG VÀO NỘI DUNG, TUYỆT ĐỐI KHÔNG có lời chào hỏi xã giao hay câu mào đầu.
-2. Dài khoảng tối đa 100 chữ, giải thích bản chất cốt lõi cực kỳ súc tích, dễ hiểu.
-3. BẮT BUỘC kết thúc bằng 1 câu hỏi gợi mở liên quan đến ứng dụng hoặc tính chất cốt lõi để thúc đẩy học sinh tự suy nghĩ và phát triển kiến thức.
+1. ĐI THẲNG VÀO NỘI DUNG, BỎ QUA MỌI LỜI CHÀO HỎI xã giao hay câu mào đầu.
+2. Dài khoảng tối thiểu 250 chữ, giải thích bản chất cốt lõi cực kỳ chi tiết, dễ hiểu.
+3. BẮT BUỘC CÁC BƯỚC:
+- Định nghĩa & Bản chất cốt lõi.
+- NẾU LÀ TIẾNG ANH: Bắt buộc cung cấp loại từ và giải thích cặn kẽ nguồn gốc (etymology) của từ để người học có thể nhớ sâu hơn.
+- Mở rộng vấn đề và góc nhìn phân tích.
+- BẮT BUỘC kết thúc bằng 1 câu hỏi gợi mở liên quan đến ứng dụng hoặc tính chất cốt lõi để thúc đẩy học sinh tự suy nghĩ và phát triển kiến thức.
 Bọc công thức Toán/Lý/Hóa bằng LaTeX (dấu $ hoặc $$). Chỉ trả ra nội dung (markdown).`;
     }
     messages = [
@@ -224,14 +230,16 @@ Bọc công thức Toán/Lý/Hóa bằng LaTeX (dấu $ hoặc $$). Chỉ trả 
     } else if (responseLength === "detailed") {
       styleGuidance = `\nĐỘ CHI TIẾT - CHI TIẾT (DETAILED MODE):
 - Tập trung vào bản chất cốt lõi. Trả lời chi tiết ở mức độ vừa đủ trọn vẹn.
-- Dài khoảng 200 - 300 chữ.
+- Dài khoảng 250 - 400 chữ.
 - Bắt buộc có 1 - 2 ví dụ cụ thể để làm rõ nghĩa.
-- Không được quá siêu ngắn gọn, nhưng cũng đừng lê thê lan man, giữ độ dài lý tưởng 200-300 chữ.`;
+- Không được quá siêu ngắn gọn, nhưng cũng đừng lê thê lan man, giữ độ dài lý tưởng.`;
     } else {
       styleGuidance = `\nĐỘ CHI TIẾT - SÚC TÍCH (CONCISE MODE):
 - Trả lời cực kỳ ngắn gọn, tối giản (chỉ 1-3 câu).
 - Đi thẳng vào bản chất cốt lõi, không giải thích dông dài phụ họa.`;
     }
+
+    const englishRule = `\nĐẶC QUYỀN VỀ TIẾNG ANH & GIAO TIẾP: Đi thẳng vào nội dung, bỏ qua mọi lời chào hỏi xã giao. Nếu câu hỏi liên quan đến tiếng Anh (từ vựng, thuật ngữ...), BẮT BUỘC cung cấp loại từ (part of speech) và giải thích nguồn gốc của nó (etymology) để giúp người học dễ nhớ hơn.`;
 
     let systemPrompt = "";
     if (responseMode === "direct") {
@@ -240,7 +248,7 @@ Bọc công thức Toán/Lý/Hóa bằng LaTeX (dấu $ hoặc $$). Chỉ trả 
 1. XƯNG HÔ "MÀY/TAO": Bắt buộc xưng "tao" và gọi người dùng là "mày". CẤM DÙNG TỪ "bạn", "tôi", "mình", "anh/chị".
 2. TRẢ LỜI TRỰC TIẾP: KHÔNG áp dụng Socratic. KHÔNG hỏi ngược lại người dùng. Đưa trực tiếp câu trả lời ra.
 3. KHÔNG BẮT CHƯỚC LỊCH SỬ NẾU SAI CHẾ ĐỘ. Tự chỉnh lại độ dài/văn phong ngay lập tức.
-4. FORMAT: Dùng LaTeX ($$, $).
+4. FORMAT: Dùng LaTeX ($$, $).${englishRule}
 ${styleGuidance}`;
     } else if (responseMode === "debate") {
       systemPrompt = `Mày là trợ lý AI tên Agent 3 (Devil's Advocate / Tranh biện Mode).
@@ -248,7 +256,7 @@ ${styleGuidance}`;
 1. XƯNG HÔ "MÀY/TAO": Bắt buộc xưng "tao" và gọi người dùng là "mày".
 2. ĐÓNG VAI ĐỐI THỦ TRANH LUẬN: Luôn đóng vai phản biện gắt gao. Cấm xuôi theo ý người dùng. Cố tình vạch trần sơ hở tư duy.
 3. BUỘC NGƯỜI DÙNG PHÒNG THỦ: Luôn kết thúc bằng một câu hỏi xoáy, thách thức lập trường hiện tại của người dùng.
-4. FORMAT: Dùng LaTeX ($$, $).
+4. FORMAT: Dùng LaTeX ($$, $).${englishRule}
 ${styleGuidance}`;
     } else {
       const socraticRule = (responseLength === "detailed" || responseLength === "super_detailed")
@@ -260,7 +268,7 @@ QUY TẮC CỐT LÕI:
 1. XƯNG HÔ "MÀY/TAO": Bắt buộc xưng "tao" và gọi người dùng là "mày". Cấm dùng "bạn", "tôi", "mình".
 ${socraticRule}
 3. CẤM BẮT CHƯỚC ĐỘ DÀI LỊCH SỬ NẾU HIỆN TẠI YÊU CẦU ĐỘ DÀI KHÁC. Phải tuân theo yêu cầu hiện tại.
-4. FORMAT: Dùng LaTeX.
+4. FORMAT: Dùng LaTeX.${englishRule}
 ${styleGuidance}`;
     }
 

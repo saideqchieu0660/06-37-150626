@@ -33,10 +33,27 @@ export default function TeacherDashboard() {
 
   const [dbUsers, setDbUsers] = useState<any[]>([]);
   const [localDecks, setLocalDecks] = useState<any[]>(() => store.getDecks());
-  const [isLibraryExpanded, setIsLibraryExpanded] = useState(false);
+  const [isLibraryExpanded, setIsLibraryExpandedState] = useState(() => {
+    return sessionStorage.getItem("teacher_isLibraryExpanded") === "true";
+  });
+  
+  const setIsLibraryExpanded = (val: boolean | ((prev: boolean) => boolean)) => {
+    setIsLibraryExpandedState((prev) => {
+      const nextVal = typeof val === "function" ? val(prev) : val;
+      sessionStorage.setItem("teacher_isLibraryExpanded", String(nextVal));
+      return nextVal;
+    });
+  };
 
   // New States for Admin Library Enhancement (Nested Markdown, Rename Category, Bulk Move)
-  const [libraryViewMode, setLibraryViewMode] = useState<"grid" | "markdown">("grid");
+  const [libraryViewMode, setLibraryViewModeState] = useState<"grid" | "markdown">(() => {
+    return (sessionStorage.getItem("teacher_libraryViewMode") as "grid" | "markdown") || "grid";
+  });
+  
+  const setLibraryViewMode = (mode: "grid" | "markdown") => {
+    setLibraryViewModeState(mode);
+    sessionStorage.setItem("teacher_libraryViewMode", mode);
+  };
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSavingCategoryName, setIsSavingCategoryName] = useState(false);
@@ -331,7 +348,7 @@ export default function TeacherDashboard() {
     }
   };
 
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(() => store.getDecks().length === 0);
   
   const unsubUsersRef = useRef<(() => void) | null>(null);
   useEffect(() => {

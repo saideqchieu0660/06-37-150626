@@ -296,7 +296,14 @@ export default function StudentDashboard() {
     });
   };
 
-  const [viewMode, setViewMode] = useState<"recent" | "all">("recent");
+  const [viewMode, setViewModeState] = useState<"recent" | "all">(() => {
+    return (sessionStorage.getItem("student_viewMode") as "recent" | "all") || "recent";
+  });
+  
+  const setViewMode = (mode: "recent" | "all") => {
+    setViewModeState(mode);
+    sessionStorage.setItem("student_viewMode", mode);
+  };
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCacheClearConfirm, setShowCacheClearConfirm] = useState(false);
 // Removed unused state
@@ -361,7 +368,7 @@ export default function StudentDashboard() {
     };
   }, []);
 
-  const [rawDecks, setRawDecks] = useState<Deck[]>([]);
+  const [rawDecks, setRawDecks] = useState<Deck[]>(() => store.getDecks());
   const [personalCardStates, setPersonalCardStates] = useState<any[]>([]);
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
 
@@ -544,7 +551,7 @@ export default function StudentDashboard() {
     }
   }, [navigate]);
 
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(() => store.getDecks().length === 0);
 
   // 1. Listen to raw decks in real-time
   const unsubDecksRef = useRef<(() => void) | null>(null);

@@ -151,6 +151,7 @@ export default function AdminCreateCards() {
 
   const handleDeleteCard = useCallback(
     (id: string) => {
+      if (!window.confirm("Bạn có chắc chắn muốn xóa thẻ này khỏi danh sách không?")) return;
       setBatchCards((prev) => prev.filter((c) => c.id !== id));
       if (editingBatchCardId === id) {
         setEditingBatchCardId(null);

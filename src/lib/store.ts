@@ -857,7 +857,15 @@ export const store = {
      
      // Fallback: search across all available decks in tempDecks if originDeckId was grouped
      if (!deck) {
-         deck = Object.values(tempDecks).find(d => d.id === deckId);
+         deck = Object.values(tempDecks).find((d: any) => d.id === deckId);
+     }
+     
+     // Deep Fallback: search across all decks to find the actual card
+     if (!deck) {
+         deck = decks.find(d => d.cards.some((c: any) => c.id === cardId));
+         if (!deck) {
+             deck = Object.values(tempDecks).find((d: any) => d.cards.some((c: any) => c.id === cardId));
+         }
      }
      
      if (!deck) return;

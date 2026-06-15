@@ -99,22 +99,20 @@ export const OfflineSyncQueue = {
   async processQueue() {
     if (isProcessing) return;
     
-    const queue = getQueue();
-    if (queue.length === 0) return;
-
-    // Check if browser stands as strictly offline
     if (!navigator.onLine) {
-      console.log(`[OfflineSync] Browser is currently offline. Retaining ${queue.length} tasks.`);
+      console.log(`[OfflineSync] Browser is currently offline. Retaining queue tasks.`);
       return;
     }
 
     isProcessing = true;
-    console.log(`[OfflineSync] Commencing syncing for ${queue.length} offline progress operations...`);
-    
-    const remainingTasks: SyncItem[] = [];
     let syncedCount = 0;
 
-    for (const item of queue) {
+    while (true) {
+      const currentQueue = getQueue();
+      if (currentQueue.length === 0) break;
+
+      const item = currentQueue[0];
+
       try {
         if (item.type === "cardState") {
           await dbService.setCardState(item.uid, item.cardId!, item.payload);
@@ -123,12 +121,13 @@ export const OfflineSyncQueue = {
         }
         syncedCount++;
         console.log(`[OfflineSync] Successfully synchronized offline action: ${item.id}`);
+        
+        const nextQueue = getQueue().filter(i => i.id !== item.id);
+        saveQueue(nextQueue);
+        
       } catch (error: any) {
-        // If it's a network-related error or similar temporary error, keep it in the queue to try again
         console.error(`[OfflineSync] Failed to sync offline item ${item.type} (${item.id}):`, error);
         
-        // However, if the error indicates a fatal business/permission logic error (e.g., unauthorized or missing profile),
-        // we should not block the queue infinitely. General error strings from Firestore usually contain 'permission-denied'
         const errorMsg = String(error).toLowerCase();
         if (
           errorMsg.includes("permission-denied") || 
@@ -136,14 +135,15 @@ export const OfflineSyncQueue = {
           errorMsg.includes("invalid-argument")
         ) {
           console.warn(`[OfflineSync] Discarding unrecoverable task ${item.id} due to fatal Firestore error status.`);
+          const nextQueue = getQueue().filter(i => i.id !== item.id);
+          saveQueue(nextQueue);
         } else {
           // Keep temporary network loss errors to retry later
-          remainingTasks.push(item);
+          break;
         }
       }
     }
 
-    saveQueue(remainingTasks);
     isProcessing = false;
 
     if (syncedCount > 0) {

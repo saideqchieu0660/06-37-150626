@@ -3,6 +3,7 @@ import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { Play, BookOpen, Search, X, ChevronLeft, ChevronRight, Sparkles, Pin, PinOff, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Deck, store } from '../lib/store';
+import { useTheme } from '../components/ThemeProvider';
 
 interface DeckListProps {
   decks: Deck[];
@@ -36,6 +37,18 @@ const TiltCard = ({ children, delayIdx, className = "" }: { children: React.Reac
     x.set(0);
     y.set(0);
   };
+
+  const { theme, isEcoMode } = useTheme();
+
+  if (isEcoMode) {
+    return (
+      <div className={`h-full ${className}`}>
+        <div className="relative p-6 sm:p-8 rounded-2xl flex flex-col group overflow-visible min-h-[17rem] h-full border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-900 transition-colors shadow-sm">
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
